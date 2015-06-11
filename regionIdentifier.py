@@ -5,6 +5,9 @@ __author__ = 'Ryan Berg <rberg2@hotmail.com>'
 #  The algorithm performs reasonably well, finding the largest region of a 100 by 100 array in less than a tenth of a second.
 #  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8.5 seconds.
 
+#  Each bit is placed into a 2D array with a corresponding flag.
+#  The flag is set to 1 when the walker has traversed the bit and copied the bit into a new array.
+
 import time
 
 def floodFill(node, nodeX, nodeY):
@@ -16,6 +19,7 @@ def floodFill(node, nodeX, nodeY):
 
     i = 0
     while i < len(fillArray):
+        #the bits position in the 2D array
         xPos = fillArray[i][0]
         yPos = fillArray[i][1]
 
@@ -122,6 +126,7 @@ for index in xrange(maxX*maxY):
 
     currentValue = int(currentValue)
 
+    #place bit in 2D array with flag set to 0
     imageBin[xPosition][yPosition] = list([currentValue, 0])
 
     xPosition += 1
