@@ -3,7 +3,7 @@ __author__ = 'Ryan Berg <rberg2@hotmail.com>'
 # -Synopsis-
 #  This algorithm is designed to find the largest connected region of bits based on the Moore neighborhood rules.
 #  The algorithm performs reasonably well, finding the largest region of a 100 by 100 array in less than a tenth of a second.
-#  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8.1 seconds.
+#  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8 seconds.
 
 #  Each bit is placed into a 2D array with a corresponding flag.
 #  The flag is set to 1 when the walker has traversed the bit and copied the bit into a new array.
@@ -106,33 +106,59 @@ xPosition = 0
 yPosition = 0
 
 
-file = open(raw_input(), 'r')
-
-startTime = time.time()
-
-maxY = int(file.readline())
-maxX = int(file.readline())
+maxY = int(raw_input('number of rows: '))
+maxX = int(raw_input('number of columns: '))
 
 imageBin = [[0 for rows in range(maxY)] for columns in range(maxX)]
 
+string = ''
 
-for index in xrange(maxX*maxY):
+for i in range(maxY):
+    string = (raw_input('enter a row\n'))
+    for bit in string:
+        try:
+            bit = int(bit.strip())
+        except:
+            pass
 
-    currentValue = file.read(2).strip()
+        if bit == 0 or bit == 1:
+            imageBin[xPosition][yPosition] = list([bit, 0])
+            xPosition += 1
 
-    if currentValue is '':
-        currentValue = file.read(2).strip()
+            if xPosition > maxX - 1:
+                yPosition += 1
+                xPosition = 0
+                break
 
-    currentValue = int(currentValue)
 
-    #place bit in 2D array with flag set to 0
-    imageBin[xPosition][yPosition] = list([currentValue, 0])
 
-    xPosition += 1
-
-    if xPosition > maxX - 1:
-        yPosition += 1
-        xPosition = 0
+# file = open(raw_input(), 'r')
+#
+# startTime = time.time()
+#
+# maxY = int(file.readline())
+# maxX = int(file.readline())
+#
+# imageBin = [[0 for rows in range(maxY)] for columns in range(maxX)]
+#
+#
+# for index in xrange(maxX*maxY):
+#
+#     currentValue = imageBin.read(2).strip()
+#
+#     if currentValue is '':
+#         currentValue = file.read(2).strip()
+#
+#     currentValue = int(currentValue)
+#
+#     #place bit in 2D array with flag set to 0
+#     imageBin[xPosition][yPosition] = list([currentValue, 0])
+#
+#     xPosition += 1
+#
+#     if xPosition > maxX - 1:
+#         yPosition += 1
+#         xPosition = 0
 
 
 for y in xrange(maxY):
@@ -143,4 +169,4 @@ for y in xrange(maxY):
                 largestRegion = floodFillRegionSize
 
 print largestRegion
-print time.time() - startTime, "seconds"
+# print time.time() - startTime, "seconds"
