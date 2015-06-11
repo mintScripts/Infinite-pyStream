@@ -3,7 +3,7 @@ __author__ = 'Ryan Berg <rberg2@hotmail.com>'
 # -Synopsis-
 #  This algorithm is designed to find the largest connected region of bits based on the Moore neighborhood rules.
 #  The algorithm performs reasonably well, finding the largest region of a 100 by 100 array in less than a tenth of a second.
-#  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8.5 seconds.
+#  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8.1 seconds.
 
 #  Each bit is placed into a 2D array with a corresponding flag.
 #  The flag is set to 1 when the walker has traversed the bit and copied the bit into a new array.
@@ -11,8 +11,6 @@ __author__ = 'Ryan Berg <rberg2@hotmail.com>'
 import time
 
 def floodFill(node, nodeX, nodeY):
-    if node[0] is not 1:
-        return
 
     fillArray = list()
     fillArray.append(list([nodeX, nodeY]))
@@ -139,9 +137,10 @@ for index in xrange(maxX*maxY):
 
 for y in xrange(maxY):
     for x in xrange(maxX):
-        floodFillRegionSize = floodFill(imageBin[x][y], x, y)
-        if floodFillRegionSize > largestRegion:
-            largestRegion = floodFillRegionSize
+        if imageBin[x][y][0] == 1:
+            floodFillRegionSize = floodFill(imageBin[x][y], x, y)
+            if floodFillRegionSize > largestRegion:
+                largestRegion = floodFillRegionSize
 
 print largestRegion
 print time.time() - startTime, "seconds"
