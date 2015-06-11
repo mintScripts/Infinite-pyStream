@@ -29,6 +29,7 @@ def floodFill(node, nodeX, nodeY):
         #the try exception is in case the walker goes beyond the bounds of the image
         try:
             #East
+            #if bit is 1 and flag is 0
             if imageBin[xPos +1][yPos][0] is 1 and imageBin[xPos +1][yPos][1] is 0:
 
                 #append to array for the walker to later traverse
