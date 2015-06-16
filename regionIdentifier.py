@@ -1,172 +1,119 @@
 __author__ = 'Ryan Berg <rberg2@hotmail.com>'
 
-# -Synopsis-
-#  This algorithm is designed to find the largest connected region of bits based on the Moore neighborhood rules.
-#  The algorithm performs reasonably well, finding the largest region of a 100 by 100 array in less than a tenth of a second.
-#  Under heavier load the algorithm is not fully optimized but completes a 1000 by 1000 array in 8 seconds.
+# Usage:
+#
+# The program finds the largest region of adjacent bits. Takes any file as an argument.
+# Optionally specify the number of columns per row.
+# Users can expect it to take 10 seconds per megabyte.
 
-#  Each bit is placed into a 2D array with a corresponding flag.
-#  The flag is set to 1 when the walker has traversed the bit and copied the bit into a new array.
-
+from collections import deque
+import thread
 import time
 
-def floodFill(node, nodeX, nodeY):
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("fileUrl", help="set the file url")
+parser.add_argument("--columns", help="set the number of columns per row [defaults to 128 bits]", type=int)
+args = parser.parse_args()
 
-    fillArray = list()
-    fillArray.append(list([nodeX, nodeY]))
+END_OF_READSTREAM = -1
+END_OF_ROW = -2
+
+NO_MATCHING_REGION = -3
+NO_POINTER = -4
+
+PREVIOUS_ROW = 0
+CURRENT_ROW = 1
+
+WORD_LENGTH = 128
+if args.columns:
+    WORD_LENGTH = args.columns
+
+#Northwest, North, Northeast
+directionLookupTable = list([-1, 0, 1])
+
+def bitProcessor(bitLocation, previousRow, currentRow):
+    bitRegion = NO_MATCHING_REGION
+    pointer = NO_POINTER
+    for direction in directionLookupTable:
+        if bitLocation + direction in previousRow:
+            if bitRegion == NO_MATCHING_REGION:
+                bitRegion = previousRow[bitLocation + direction]
+            elif bitRegion != previousRow[bitLocation + direction]:
+                pointer = previousRow[bitLocation + direction]
+    if bitLocation - 1 in currentRow:
+        if bitRegion == NO_MATCHING_REGION:
+            bitRegion = currentRow[bitLocation - 1]
+        elif bitRegion != currentRow[bitLocation - 1]:
+            pointer = currentRow[bitLocation - 1]
+    return {'bitRegion': bitRegion, 'pointer': pointer}
+
+def consumer(readStream):
+    q = deque([{-2: 0}, {-2: 0}])
+    counter = list([0])
+
+    while True:
+        if readStream:
+            bitLocation = readStream.popleft()
+            if bitLocation == END_OF_READSTREAM:
+                break
+            if bitLocation != END_OF_ROW:
+                bitData = bitProcessor(bitLocation, q[PREVIOUS_ROW], q[CURRENT_ROW])
+                # print 'bd', bitData
+                if bitData['bitRegion'] == NO_MATCHING_REGION:
+                    bitData['bitRegion'] = len(counter)
+
+                if bitData['bitRegion'] < len(counter):
+                    # print 'counter', counter
+                    if counter[bitData['bitRegion']] > -1:
+                        counter[bitData['bitRegion']] += 1
+                    else:
+                        counter[counter[bitData['bitRegion']] * -1] += 1
+                else:
+                    counter.append(1)
+
+                if bitData['pointer'] != NO_POINTER and counter[bitData['pointer']] > 0 and counter[bitData['bitRegion']] > 0:
+                    counter[bitData['bitRegion']] += counter[bitData['pointer']]
+                    counter[bitData['pointer']] = bitData['bitRegion'] * -1
+                q[CURRENT_ROW][bitLocation] = bitData['bitRegion']
+            else:
+                q.popleft()
+                q.append({-2: 0})
+
+    # print counter
+    return max(counter)
+
+def producer(idNumber, readStream):
+
+    inputFile = open(args.fileUrl, 'rb')
 
     i = 0
-    while i < len(fillArray):
-        #the bits position in the 2D array
-        xPos = fillArray[i][0]
-        yPos = fillArray[i][1]
-
-        #mark node as done by changing its bit value
-        imageBin[xPos][yPos][0] = 0
-
-        #the try exception is in case the walker goes beyond the bounds of the image
-        try:
-            #East
-            #if bit is 1 and flag is 0
-            if imageBin[xPos +1][yPos][0] is 1 and imageBin[xPos +1][yPos][1] is 0:
-
-                #append to array for the walker to later traverse
-                fillArray.append(list([xPos +1, yPos]))
-
-                #flag the bit as appended to fillArray
-                imageBin[xPos +1][yPos][1] = 1
-        except:
-            pass
-
-        try:
-            #Southeast
-            if imageBin[xPos +1][yPos +1][0] is 1 and imageBin[xPos +1][yPos +1][1] is 0:
-                fillArray.append(list([xPos +1, yPos +1]))
-                imageBin[xPos +1][yPos +1][1] = 1
-        except:
-            pass
-
-        try:
-            #South
-            if imageBin[xPos][yPos +1][0] == 1 and imageBin[xPos][yPos +1][1] == 0:
-                fillArray.append(list([xPos, yPos +1]))
-                imageBin[xPos][yPos +1][1] = 1
-        except:
-            pass
-
-        try:
-            #Southwest
-            if xPos -1 > -1 and imageBin[xPos -1][yPos +1][0] == 1 and imageBin[xPos -1][yPos +1][1] == 0:
-                fillArray.append(list([xPos -1, yPos +1]))
-                imageBin[xPos -1][yPos +1][1] = 1
-        except:
-            pass
-
-        try:
-            #West
-            if xPos -1 > -1 and imageBin[xPos -1][yPos][0] == 1 and imageBin[xPos -1][yPos][1] == 0:
-                fillArray.append(list([xPos -1, yPos]))
-                imageBin[xPos -1][yPos][1] = 1
-        except:
-            pass
-
-        try:
-            #Northwest
-            if xPos -1 > -1 and yPos -1 > -1 and imageBin[xPos -1][yPos -1][0] is 1 and imageBin[xPos -1][yPos -1][1] is 0:
-                fillArray.append(list([xPos -1, yPos -1]))
-                imageBin[xPos -1][yPos -1][1] = 1
-        except:
-            pass
-
-        try:
-            #North
-            if yPos -1 > -1 and imageBin[xPos][yPos -1][0] is 1 and imageBin[xPos][yPos -1][1] is 0:
-                fillArray.append(list([xPos, yPos -1]))
-                imageBin[xPos][yPos -1][1] = 1
-        except:
-            pass
-
-        try:
-            #Northeast
-            if yPos -1 > -1 and imageBin[xPos +1][yPos -1][0] is 1 and imageBin[xPos +1][yPos -1][1] is 0:
-                fillArray.append(list([xPos +1, yPos -1]))
-                imageBin[xPos +1][yPos -1][1] = 1
-        except:
-            pass
-
-        i += 1
-
-    return len(fillArray)
-#  End floodFill  #
-
-
-largestRegion = 0
-
-xPosition = 0
-yPosition = 0
-
-
-maxY = int(raw_input('number of rows: '))
-maxX = int(raw_input('number of columns: '))
-
-imageBin = [[0 for rows in range(maxY)] for columns in range(maxX)]
-
-string = ''
-
-for i in range(maxY):
-    string = (raw_input('enter a row\n'))
-    for bit in string:
+    while True:
+        bit = inputFile.read(1)
+        if bit == '':
+            readStream.append(END_OF_READSTREAM)
+            break
         try:
             bit = int(bit.strip())
-        except:
+            if bit == 1 or bit == 0:
+                if bit == 1:
+                    readStream.append(i)
+                i += 1
+            if i == WORD_LENGTH:
+                i = 0
+                readStream.append(END_OF_ROW)
+        except ValueError:
             pass
+    return
 
-        if bit == 0 or bit == 1:
-            imageBin[xPosition][yPosition] = list([bit, 0])
-            xPosition += 1
+if __name__ == '__main__':
 
-            if xPosition > maxX - 1:
-                yPosition += 1
-                xPosition = 0
-                break
+    # infinite stream
+    readStream = deque()
 
+    startTime = time.time()
 
-
-# file = open(raw_input(), 'r')
-#
-# startTime = time.time()
-#
-# maxY = int(file.readline())
-# maxX = int(file.readline())
-#
-# imageBin = [[0 for rows in range(maxY)] for columns in range(maxX)]
-#
-#
-# for index in xrange(maxX*maxY):
-#
-#     currentValue = imageBin.read(2).strip()
-#
-#     if currentValue is '':
-#         currentValue = file.read(2).strip()
-#
-#     currentValue = int(currentValue)
-#
-#     #place bit in 2D array with flag set to 0
-#     imageBin[xPosition][yPosition] = list([currentValue, 0])
-#
-#     xPosition += 1
-#
-#     if xPosition > maxX - 1:
-#         yPosition += 1
-#         xPosition = 0
-
-
-for y in xrange(maxY):
-    for x in xrange(maxX):
-        if imageBin[x][y][0] == 1:
-            floodFillRegionSize = floodFill(imageBin[x][y], x, y)
-            if floodFillRegionSize > largestRegion:
-                largestRegion = floodFillRegionSize
-
-print largestRegion
-# print time.time() - startTime, "seconds"
+    thread.start_new_thread(producer, (1, readStream))
+    print 'crunching data...'
+    maxCount = (consumer(readStream))
+    print 'Largest Region:', maxCount, 'Running Time:', round(time.time() - startTime, 2), 'seconds'
